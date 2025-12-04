@@ -7,8 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Promethean Soup is a mentions feed for ideas. Users follow papers, books, or blogs, and the system discovers who's discussing them across the web. Think Twitter but following *works* instead of *people*.
 
 **Stack:**
-- **Frappe** (Python) - User accounts, UI, DocTypes, Exa API bridge
-- **Rama** (Java) - Dataflow backend handling follow events → search → store mentions (`forager/`)
+- **Frappe** (Python) - Full stack: user accounts, DocTypes, API, UI
 - **Exa** - Web search API for finding mentions
 
 ## Development Environment
@@ -28,95 +27,76 @@ cp -R devcontainer-example .devcontainer
 # Open in VSCode → "Reopen in Container"
 ```
 
-The devcontainer includes:
-- Frappe/bench environment
-- Java 21 (Temurin) + Maven for forager development
-- promethean-soup mounted at `/workspace/promethean-soup`
-
-## Development Commands
-
-**Frappe/Bench commands** (run from bench directory, typically `~/frappe-bench`):
-
+Inside the devcontainer:
 ```bash
-# Run development server
-bench start
-
-# Run tests for this app
-bench --site <site_name> run-tests --app promethean_soup
-
-# Enable test mode on a site
-bench --site <site_name> set-config allow_tests true
-
-# Build frontend assets
-bench build
-
-# Install app to a site
-bench --site <site_name> install-app promethean_soup
-
-# Create a new DocType
-bench --site <site_name> console  # then use frappe.new_doc()
-```
-
-**Initial setup:**
-```bash
-pip install frappe-bench
-bench init ~/frappe-bench
 cd ~/frappe-bench
-bench get-app promethean_soup /path/to/this/repo
-bench new-site mysite.localhost --db-root-password root --admin-password admin
-bench --site mysite.localhost install-app promethean_soup
-```
-
-**Forager (Rama module) commands:**
-```bash
-cd /workspace/promethean-soup/forager
-
-# Build JAR
-mvn package
-
-# Run tests
-mvn test
-
-# Clean and rebuild
-mvn clean package
+bench get-app promethean_soup /workspace/promethean-soup
+bench --site <site_name> install-app promethean_soup
+bench start
 ```
 
 ## Architecture
 
 ```
-User action (follow work)
+User follows work (URL, DOI, or title)
     ↓
-Rama depot: user-actions → PState: followed-works, mentions-by-work
-    ↓ HTTP call on follow
-Frappe: search_mentions(work_url) → Exa API → returns Mentions
+Frappe: creates Followed Work DocType record
     ↓
-Feed UI displays mentions for followed works
+Frappe: calls Exa API to search for mentions
+    ↓
+Frappe: stores results as Mention DocType records
+    ↓
+Feed UI: displays mentions for user's followed works
 ```
 
-**Key data structures:**
-- `user-actions` depot: `{user-id, action (:follow/:unfollow), work-url}`
-- `followed-works` PState: `user-id → [work-url]`
-- `mentions-by-work` PState: `work-url → [Mention]`
-- `Mention`: `{url, title, snippet, date, work-url}`
+## DocTypes
 
-## Frappe App Structure
+**Followed Work** - Works a user is tracking
+| Field     | Type   | Description                      |
+|-----------|--------|----------------------------------|
+| user      | Link   | Frappe user                      |
+| work_url  | Data   | URL, DOI, or canonical ID        |
+| title     | Data   | Display title (optional)         |
+
+**Mention** - Discussions found about a work
+| Field     | Type   | Description                      |
+|-----------|--------|----------------------------------|
+| work      | Link   | Reference to Followed Work       |
+| url       | Data   | Where the mention lives          |
+| title     | Data   | Page/post title                  |
+| snippet   | Text   | Relevant excerpt                 |
+| published | Date   | Publication date (if available)  |
+
+## Key Files
 
 ```
 promethean_soup/
-├── __init__.py           # Version (0.0.1)
-├── hooks.py              # Frappe app hooks configuration
-├── modules.txt           # Module list
-├── patches.txt           # Database migrations
-├── config/               # App configuration
-├── promethean_soup/      # Main module (DocTypes go here)
-├── public/               # Frontend JS/CSS assets
-└── templates/pages/      # Web pages
+├── __init__.py                    # Version
+├── hooks.py                       # Frappe app config
+├── api.py                         # Whitelisted API endpoints
+├── promethean_soup/
+│   └── doctype/
+│       ├── followed_work/         # Followed Work DocType
+│       └── mention/               # Mention DocType
+├── public/                        # Frontend assets
+└── templates/pages/               # Web pages (feed UI)
 ```
 
-**Creating new features:**
-- DocTypes: Create in `promethean_soup/promethean_soup/doctype/<doctype_name>/`
-- API endpoints: Add `@frappe.whitelist()` functions in `api.py`
-- Web pages: Add to `templates/pages/`
+## Development Commands
+
+```bash
+# Run development server
+bench start
+
+# Run tests
+bench --site <site_name> run-tests --app promethean_soup
+
+# Build frontend assets
+bench build
+
+# Access Frappe console
+bench --site <site_name> console
+```
 
 ## Issue Tracking
 
