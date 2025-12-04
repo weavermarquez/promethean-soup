@@ -63,9 +63,41 @@ Think Twitter, but instead of following *people* who push content at you, you fo
 | snippet   | Text   | Relevant excerpt                 |
 | published | Date   | Publication date (if available)  |
 
-## Development
+## Development & Deployment
 
-See [CLAUDE.md](CLAUDE.md) for development environment setup and commands.
+Development and deployment infrastructure lives in a separate repo: [frappe_docker](https://github.com/weavermarquez/frappe_docker) (`psoup` branch).
+
+### Development (devcontainer)
+
+```bash
+# Clone repos side-by-side
+git clone https://github.com/weavermarquez/frappe_docker.git
+git clone https://github.com/weavermarquez/promethean-soup.git
+
+# Set up devcontainer
+cd frappe_docker
+git checkout psoup
+cp -R devcontainer-example .devcontainer
+
+# Open in VSCode → "Reopen in Container"
+```
+
+Inside the container:
+```bash
+cd ~/frappe-bench
+bench get-app promethean_soup /workspace/promethean-soup
+bench --site <site_name> install-app promethean_soup
+bench start
+```
+
+### Production
+
+The `psoup` branch includes:
+- GitHub Actions workflow to build production image → `ghcr.io/weavermarquez/frappe_docker-psoup`
+- Podman/Docker compose configs for deployment
+- See `PRODUCTION_SCRIPTS.org` in frappe_docker for deployment docs
+
+See [CLAUDE.md](CLAUDE.md) for additional development commands.
 
 ## Status
 
