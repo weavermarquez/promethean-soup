@@ -8,8 +8,30 @@ Promethean Soup is a mentions feed for ideas. Users follow papers, books, or blo
 
 **Stack:**
 - **Frappe** (Python) - User accounts, UI, DocTypes, Exa API bridge
-- **Rama** (JVM/Clojure) - Dataflow backend handling follow events → search → store mentions (separate repo)
+- **Rama** (Java) - Dataflow backend handling follow events → search → store mentions (`forager/`)
 - **Exa** - Web search API for finding mentions
+
+## Development Environment
+
+Use the devcontainer from [frappe_docker](https://github.com/weavermarquez/frappe_docker) `psoup` branch:
+
+```bash
+# Clone repos side-by-side
+git clone https://github.com/weavermarquez/frappe_docker.git
+git clone https://github.com/weavermarquez/promethean-soup.git
+cd frappe_docker
+git checkout psoup
+
+# Copy devcontainer config
+cp -R devcontainer-example .devcontainer
+
+# Open in VSCode → "Reopen in Container"
+```
+
+The devcontainer includes:
+- Frappe/bench environment
+- Java 21 (Temurin) + Maven for forager development
+- promethean-soup mounted at `/workspace/promethean-soup`
 
 ## Development Commands
 
@@ -43,6 +65,20 @@ cd ~/frappe-bench
 bench get-app promethean_soup /path/to/this/repo
 bench new-site mysite.localhost --db-root-password root --admin-password admin
 bench --site mysite.localhost install-app promethean_soup
+```
+
+**Forager (Rama module) commands:**
+```bash
+cd /workspace/promethean-soup/forager
+
+# Build JAR
+mvn package
+
+# Run tests
+mvn test
+
+# Clean and rebuild
+mvn clean package
 ```
 
 ## Architecture
